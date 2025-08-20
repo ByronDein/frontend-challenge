@@ -273,3 +273,70 @@
     padding: 16px;
   }
 }
+
+/* Color and Size Selection Styles */
+.selection-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.selection-label {
+  color: #374151;
+  font-weight: 500;
+}
+
+.color-options,
+.size-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.color-option,
+.size-option {
+  padding: 8px 16px;
+  border: 2px solid #e2e8f0;
+  border-radius: 8px;
+  background: white;
+  color: #374151;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-width: 60px;
+  text-align: center;
+}
+
+.color-option:hover,
+.size-option:hover {
+  border-color: #3b82f6;
+  background: #f1f5f9;
+}
+
+.color-option.selected,
+.size-option.selected {
+  border-color: #3b82f6;
+  background: #3b82f6;
+  color: white;
+}
+
+.color-option:focus,
+.size-option:focus {
+  outline: 2px solid #3b82f6;
+  outline-offset: 2px;
+}
+
+@media (max-width: 768px) {
+  .color-options,
+  .size-options {
+    gap: 6px;
+  }
+  
+  .color-option,
+  .size-option {
+    padding: 6px 12px;
+    font-size: 12px;
+    min-width: 50px;
+  }
+}

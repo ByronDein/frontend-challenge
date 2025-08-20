@@ -1,21 +1,5 @@
 import { Product, Category, Supplier } from '../types/Product'
 
-// Categorías de productos
-export const categories: Category[] = [
-  { id: 'all', name: 'Todos', icon: 'apps', count: 20 },
-  { id: 'tech', name: 'Tecnología', icon: 'devices', count: 8 },
-  { id: 'textile', name: 'Textil', icon: 'checkroom', count: 6 },
-  { id: 'office', name: 'Oficina', icon: 'work', count: 4 },
-  { id: 'home', name: 'Hogar', icon: 'home', count: 2 }
-]
-
-// Proveedores
-export const suppliers: Supplier[] = [
-  { id: 'smart-gifts', name: 'Smart Gifts', products: 12 },
-  { id: 'top-gifts', name: 'Top Gifts', products: 5 },
-  { id: 'qr-code', name: 'QR Code', products: 3 }
-]
-
 // Product catalog data
 export const products: Product[] = [
   {
@@ -382,4 +366,20 @@ export const products: Product[] = [
       { minQty: 20, price: 11000, discount: 19 }
     ]
   }
+]
+
+// Categorías de productos
+export const categories: Category[] = [
+  { id: 'all', name: 'Todos', icon: 'apps', count: products.length },
+  { id: 'tech', name: 'Tecnología', icon: 'devices', count: products.filter(p => p.category === 'tech').length },
+  { id: 'textile', name: 'Textil', icon: 'checkroom', count: products.filter(p => p.category === 'textile').length },
+  { id: 'office', name: 'Oficina', icon: 'work', count: products.filter(p => p.category === 'office').length },
+  { id: 'home', name: 'Hogar', icon: 'home', count: products.filter(p => p.category === 'home').length }
+]
+
+// Proveedores - calculados dinámicamente
+export const suppliers: Supplier[] = [
+  { id: 'smart-gifts', name: 'Smart Gifts', products: products.filter(p => p.supplier === 'smart-gifts').length },
+  { id: 'top-gifts', name: 'Top Gifts', products: products.filter(p => p.supplier === 'top-gifts').length },
+  { id: 'qr-code', name: 'QR Code', products: products.filter(p => p.supplier === 'qr-code').length }
 ]

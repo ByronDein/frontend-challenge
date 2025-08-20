@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import ProductCard from '../components/ProductCard'
 import ProductFilters from '../components/ProductFilters'
 import { products as allProducts } from '../data/products'
@@ -8,11 +8,18 @@ import './ProductList.css'
 const ProductList = () => {
   const [filteredProducts, setFilteredProducts] = useState<Product[]>(allProducts)
   const [selectedCategory, setSelectedCategory] = useState('all')
+  const [selectedSupplier, setSelectedSupplier] = useState('all')
   const [searchQuery, setSearchQuery] = useState('')
   const [sortBy, setSortBy] = useState('name')
+  const [priceRange, setPriceRange] = useState({ min: 0, max: 50000 })
+
+  // Initialize filters on component mount
+  useEffect(() => {
+    filterProducts('all', 'all', '', 'name', { min: 0, max: 50000 })
+  }, [])
 
   // Filter and sort products based on criteria
-  const filterProducts = (category: string, search: string, sort: string) => {
+  const filterProducts = (category: string, supplier: string, search: string, sort: string, priceFilter: { min: number, max: number }) => {
     let filtered = [...allProducts]
 
     // Category filter
@@ -20,11 +27,21 @@ const ProductList = () => {
       filtered = filtered.filter(product => product.category === category)
     }
 
+    // Supplier filter
+    if (supplier !== 'all') {
+      filtered = filtered.filter(product => product.supplier === supplier)
+    }
+
+    // Price range filter
+    filtered = filtered.filter(product => 
+      product.basePrice >= priceFilter.min && product.basePrice <= priceFilter.max
+    )
+
     // Search filter
     if (search) {
       filtered = filtered.filter(product => 
-        product.name.includes(search) ||
-        product.sku.includes(search)
+        product.name.toLowerCase().includes(search.toLowerCase()) ||
+        product.sku.toLowerCase().includes(search.toLowerCase())
       )
     }
 
@@ -34,7 +51,7 @@ const ProductList = () => {
         filtered.sort((a, b) => a.name.localeCompare(b.name))
         break
       case 'price':
-        // Price sorting to implement
+       filtered.sort((a, b) => b.basePrice - a.basePrice)
         break
       case 'stock':
         filtered.sort((a, b) => b.stock - a.stock)
@@ -48,17 +65,37 @@ const ProductList = () => {
 
   const handleCategoryChange = (category: string) => {
     setSelectedCategory(category)
-    filterProducts(category, searchQuery, sortBy)
+    filterProducts(category, selectedSupplier, searchQuery, sortBy, priceRange)
   }
 
   const handleSearchChange = (search: string) => {
     setSearchQuery(search)
-    filterProducts(selectedCategory, search, sortBy)
+    filterProducts(selectedCategory, selectedSupplier, search, sortBy, priceRange)
   }
 
   const handleSortChange = (sort: string) => {
     setSortBy(sort)
-    filterProducts(selectedCategory, searchQuery, sort)
+    filterProducts(selectedCategory, selectedSupplier, searchQuery, sort, priceRange)
+  }
+  
+  const handleSortBySupplier = (supplier: string) => {
+    setSelectedSupplier(supplier)
+    filterProducts(selectedCategory, supplier, searchQuery, sortBy, priceRange)
+  }
+
+  const handlePriceRangeChange = (newPriceRange: { min: number, max: number }) => {
+    setPriceRange(newPriceRange)
+    filterProducts(selectedCategory, selectedSupplier, searchQuery, sortBy, newPriceRange)
+  }
+
+  const handleClearAllFilters = () => {
+    setSearchQuery('')
+    setSelectedCategory('all')
+    setSelectedSupplier('all')
+    setSortBy('name')
+    const defaultPriceRange = { min: 0, max: 50000 }
+    setPriceRange(defaultPriceRange)
+    filterProducts('all', 'all', '', 'name', defaultPriceRange)
   }
 
   return (
@@ -88,11 +125,16 @@ const ProductList = () => {
         {/* Filters */}
         <ProductFilters
           selectedCategory={selectedCategory}
+          selectedSupplier={selectedSupplier}
           searchQuery={searchQuery}
           sortBy={sortBy}
+          priceRange={priceRange}
           onCategoryChange={handleCategoryChange}
           onSearchChange={handleSearchChange}
           onSortChange={handleSortChange}
+          onSortBySupplier={handleSortBySupplier}
+          onPriceRangeChange={handlePriceRangeChange}
+          onClearAllFilters={handleClearAllFilters}
         />
 
         {/* Products Grid */}
@@ -107,7 +149,10 @@ const ProductList = () => {
                 onClick={() => {
                   setSearchQuery('')
                   setSelectedCategory('all')
-                  filterProducts('all', '', sortBy)
+                  setSelectedSupplier('all')
+                  const defaultPriceRange = { min: 0, max: 50000 }
+                  setPriceRange(defaultPriceRange)
+                  filterProducts('all', 'all', '', sortBy, defaultPriceRange)
                 }}
               >
                 Ver todos los productos

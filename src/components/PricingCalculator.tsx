@@ -1,13 +1,18 @@
 import { useState } from 'react'
 import { Product } from '../types/Product'
+import { useCart } from '../contexts'
 import './PricingCalculator.css'
 
 interface PricingCalculatorProps {
   product: Product
+  canAddToCart?: boolean // Optional prop to control add to cart button
 }
 
-const PricingCalculator = ({ product }: PricingCalculatorProps) => {
+const PricingCalculator = ({ product, canAddToCart }: PricingCalculatorProps) => {
   const [quantity, setQuantity] = useState<number>(1)
+  const [selectedColor, setSelectedColor] = useState<string>(product.colors?.[0] || '')
+  const [selectedSize, setSelectedSize] = useState<string>(product.sizes?.[0] || '')
+  const { addToCart } = useCart()
   const [selectedBreak, setSelectedBreak] = useState<number>(0)
 
   // Calculate best pricing for quantity
@@ -16,15 +21,16 @@ const PricingCalculator = ({ product }: PricingCalculatorProps) => {
       return product.basePrice * qty
     }
 
-    // Find applicable price break
-    let applicableBreak = product.priceBreaks[0]
-    for (let i = 0; i < product.priceBreaks.length; i++) {
-      if (qty >= product.priceBreaks[i].minQty) {
-        applicableBreak = product.priceBreaks[i]
-      }
+    const applicableBreaks = product.priceBreaks.filter(breakPoint => breakPoint.minQty <= qty)
+
+    if (applicableBreaks.length === 0) {
+      return product.basePrice * qty
     }
 
-    return applicableBreak.price * qty
+    // Find  best applicable  price break
+    const bestBreak = applicableBreaks.reduce((best, current) => current.price < best.price ? current : best)
+
+    return bestBreak.price * qty
   }
 
   // Calculate discount amount
@@ -35,14 +41,14 @@ const PricingCalculator = ({ product }: PricingCalculatorProps) => {
 
     const baseTotal = product.basePrice * qty
     const discountedTotal = calculatePrice(qty)
-    
+
     // Calculate savings percentage
     return ((baseTotal - discountedTotal) / baseTotal) * 100
   }
 
   // Format price display
   const formatPrice = (price: number) => {
-    return `$${price.toLocaleString()}` // Should be CLP formatting
+    return `${price.toLocaleString('es-CL', { style: 'currency', currency: 'CLP' })}` // Should be CLP formatting
   }
 
   const currentPrice = calculatePrice(quantity)
@@ -58,6 +64,42 @@ const PricingCalculator = ({ product }: PricingCalculatorProps) => {
       </div>
 
       <div className="calculator-content">
+        {/* Color Selection */}
+        {product.colors && product.colors.length > 1 && (
+          <div className="selection-section">
+            <label className="selection-label p1-medium">Color</label>
+            <div className="color-options">
+              {product.colors.map((color) => (
+                <button
+                  key={color}
+                  className={`color-option ${selectedColor === color ? 'selected' : ''}`}
+                  onClick={() => setSelectedColor(color)}
+                >
+                  {color}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Size Selection */}
+        {product.sizes && product.sizes.length > 1 && (
+          <div className="selection-section">
+            <label className="selection-label p1-medium">Talla</label>
+            <div className="size-options">
+              {product.sizes.map((size) => (
+                <button
+                  key={size}
+                  className={`size-option ${selectedSize === size ? 'selected' : ''}`}
+                  onClick={() => setSelectedSize(size)}
+                >
+                  {size}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Quantity Input */}
         <div className="quantity-section">
           <label className="quantity-label p1-medium">Cantidad</label>
@@ -65,10 +107,14 @@ const PricingCalculator = ({ product }: PricingCalculatorProps) => {
             <input
               type="number"
               value={quantity}
-              onChange={(e) => setQuantity(Math.max(1, parseInt(e.target.value) || 1))}
+              onChange={(e) => {
+                const value = parseInt(e.target.value) || 1
+                const validatedQuantity = Math.max(1, Math.min(value, product.stock))
+                setQuantity(validatedQuantity)
+              }}
               className="quantity-input p1"
               min="1"
-              max="10000"
+              max={product.stock}
             />
             <span className="quantity-unit l1">unidades</span>
           </div>
@@ -82,9 +128,9 @@ const PricingCalculator = ({ product }: PricingCalculatorProps) => {
               {product.priceBreaks.map((priceBreak, index) => {
                 const isActive = quantity >= priceBreak.minQty
                 const isSelected = selectedBreak === index
-                
+
                 return (
-                  <div 
+                  <div
                     key={index}
                     className={`price-break ${isActive ? 'active' : ''} ${isSelected ? 'selected' : ''}`}
                     onClick={() => {
@@ -118,7 +164,7 @@ const PricingCalculator = ({ product }: PricingCalculatorProps) => {
               {formatPrice(calculatePrice(quantity) / quantity)}
             </span>
           </div>
-          
+
           <div className="summary-row">
             <span className="summary-label p1">Cantidad:</span>
             <span className="summary-value p1-medium">{quantity} unidades</span>
@@ -143,7 +189,7 @@ const PricingCalculator = ({ product }: PricingCalculatorProps) => {
 
         {/* Actions */}
         <div className="calculator-actions">
-          <button 
+          <button
             className="btn btn-secondary cta1"
             onClick={() => {
               // Handle quote request
@@ -153,16 +199,19 @@ const PricingCalculator = ({ product }: PricingCalculatorProps) => {
             <span className="material-icons">email</span>
             Solicitar cotización oficial
           </button>
-          
-          <button 
-            className="btn btn-primary cta1"
+
+          <button
+            className={`btn btn-primary cta1 ${!canAddToCart ? 'disabled' : ''}`}
+            disabled={!canAddToCart}
             onClick={() => {
-              // Add to cart functionality
-              alert('Función de agregar al carrito por implementar')
+              addToCart(product, quantity, selectedColor, selectedSize)
+              const colorText = selectedColor ? ` en ${selectedColor}` : '';
+              const sizeText = selectedSize ? ` talla ${selectedSize}` : '';
+              alert(`¡${quantity} unidades de ${product.name}${colorText}${sizeText} agregadas al carrito!`)
             }}
           >
             <span className="material-icons">shopping_cart</span>
-            Agregar al carrito
+            {canAddToCart ? 'Agregar al carrito' : 'No disponible'}
           </button>
         </div>
 
@@ -175,7 +224,7 @@ const PricingCalculator = ({ product }: PricingCalculatorProps) => {
               <span className="info-detail l1">En pedidos sobre $50.000</span>
             </div>
           </div>
-          
+
           <div className="info-item">
             <span className="material-icons">schedule</span>
             <div className="info-content">
@@ -183,7 +232,7 @@ const PricingCalculator = ({ product }: PricingCalculatorProps) => {
               <span className="info-detail l1">7-10 días hábiles</span>
             </div>
           </div>
-          
+
           <div className="info-item">
             <span className="material-icons">verified</span>
             <div className="info-content">
